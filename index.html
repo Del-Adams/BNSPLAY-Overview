@@ -1451,6 +1451,34 @@ a, button, select, .chip, .nav-link, .bn-item, .icon-btn { touch-action: manipul
   .top-actions .icon-btn { width: 34px; height: 34px; }
 }
 @media (max-width: 360px) { .e-top-word small { display: none; } }
+
+/* ---------- "lit" cards: orange glow around the card and a light that sweeps across ---------- */
+.e-lit { --glow-a: rgba(247,148,29,.30); --glow-b: rgba(226,35,26,.16); border: 1px solid rgba(247,148,29,.45); box-shadow: 0 0 0 1px rgba(255,194,14,.10), 0 0 24px var(--glow-a), 0 0 64px var(--glow-b); }
+.hero.e-lit { --glow-a: rgba(247,148,29,.38); --glow-b: rgba(226,35,26,.22); }
+[data-theme="light"] .e-lit, :root:not([data-theme]) .e-lit { --glow-a: rgba(247,148,29,.26); --glow-b: rgba(226,35,26,.10); }
+.e-lit > .e-shine { position: absolute; inset: 0; border-radius: inherit; overflow: hidden; pointer-events: none; z-index: 0; }
+.e-lit > .e-shine::before {
+  content: ""; position: absolute; top: -40%; bottom: -40%; left: -60%; width: 45%;
+  background: linear-gradient(100deg, transparent 0%, rgba(255,214,140,.10) 30%, rgba(255,236,200,.30) 48%, rgba(255,255,255,.42) 50%, rgba(255,236,200,.30) 52%, rgba(255,214,140,.10) 70%, transparent 100%);
+  transform: skewX(-18deg); opacity: 0;
+}
+.e-lit > *:not(.e-shine) { position: relative; z-index: 1; }
+.kpi.e-lit::before { z-index: 2; }
+@media (prefers-reduced-motion: no-preference) {
+  .e-lit { animation: e-glow 3.6s ease-in-out infinite; }
+  .e-lit > .e-shine::before { animation: e-sweep 4.8s cubic-bezier(.4,.1,.2,1) var(--d, 0s) infinite; }
+}
+@keyframes e-glow {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255,194,14,.10), 0 0 22px var(--glow-a), 0 0 60px var(--glow-b); }
+  50% { box-shadow: 0 0 0 1px rgba(255,194,14,.22), 0 0 34px var(--glow-a), 0 0 90px var(--glow-b); }
+}
+@keyframes e-sweep {
+  0% { left: -60%; opacity: 0; }
+  8% { opacity: 1; }
+  45% { left: 120%; opacity: 1; }
+  46%, 100% { left: 120%; opacity: 0; }
+}
+.kpi.e-lit:hover { animation-play-state: paused; }
 </style>
   <script>
     /* Apply saved theme before paint to avoid a flash */
@@ -1556,7 +1584,8 @@ a, button, select, .chip, .nav-link, .bn-item, .icon-btn { touch-action: manipul
     <main class="content" id="content">
       <section class="view active" id="overview" data-title="Overview" data-desc="The selected dates at a glance">
 
-      <div class="hero">
+      <div class="hero e-lit">
+        <span class="e-shine" aria-hidden="true"></span>
         <div class="e-hero-main">
           <small id="heroDate">Report date</small>
           <h2>Buenas Play Overview</h2>
@@ -2425,6 +2454,7 @@ a, button, select, .chip, .nav-link, .bn-item, .icon-btn { touch-action: manipul
     if (m.kind === 'count') mtd.append(el('span', null, '7-day avg'), el('b', null, c && c.avg7 !== null ? m.fmt(c.avg7) : '—'));
     else mtd.append(el('span', null, 'MTD'), el('b', null, c && c.mtd !== null ? m.fmt(c.mtd) : '—'));
     card.append(top, el('div', 'kpi-value', c ? m.fmt(c.value) : '—'), row, mtd);
+    if (MAIN_KEYS.includes(k)) { card.classList.add('e-lit'); const sh = el('span', 'e-shine'); sh.setAttribute('aria-hidden', 'true'); sh.style.setProperty('--d', (MAIN_KEYS.indexOf(k) * 0.45 + 0.6) + 's'); card.prepend(sh); }
     return card;
   }
   function statItem(k, c, R) {
@@ -2802,6 +2832,8 @@ a, button, select, .chip, .nav-link, .bn-item, .icon-btn { touch-action: manipul
   // short date label on small screens
   matchMedia('(max-width: 720px)').addEventListener('change', () => renderHead());
   route();
+  // a #page link should open at the top of that page, not scrolled under the top bar
+  if (VIEW_OF[(location.hash || '').slice(1)] && location.hash !== '#definitions') { window.scrollTo(0, 0); requestAnimationFrame(() => window.scrollTo(0, 0)); setTimeout(() => window.scrollTo(0, 0), 60); }
   Intro.start();
   schedule();
   loadLive();
