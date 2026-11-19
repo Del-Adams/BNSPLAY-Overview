@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tickets · CSR Dashboard</title>
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="ticket-data.js?v=5"></script>
+<style>
+  :root{
+    --primary:#2563EB;
+    --primary-dark:#1D4ED8;
+    --primary-tint:#EFF4FF;
+    --success:#22C55E;
+    --success-tint:#EAFBF1;
+    --warning:#F59E0B;
+    --warning-tint:#FEF6E7;
+    --danger:#EF4444;
+    --danger-tint:#FDECEC;
+    --purple:#8B5CF6;
+    --purple-tint:#F3EEFE;
+    --teal:#14B8A6;
+    --teal-tint:#E9FAF8;
+    --bg:#F8FAFC;
+    --card:#FFFFFF;
+    --ink:#0F172A;
+    --ink-soft:#475569;
+    --ink-faint:#94A3B8;
+    --line:#EEF1F6;
+    --radius-sm:10px;
+    --radius-md:14px;
+    --radius-lg:18px;
+    --shadow: 0 1px 2px rgba(15,23,42,0.04), 0 8px 24px -12px rgba(15,23,42,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Plus Jakarta Sans',system-ui,sans-serif;background:var(--bg);color:var(--ink);}
+  a{color:inherit;text-decoration:none;}
+  button{font-family:inherit;}
+
+  .app{display:flex;min-height:100vh;}
+
+  /* SIDEBAR */
+  .sidebar{
+    width:248px;flex-shrink:0;background:#0B1220;color:#CBD5E1;
+    display:flex;flex-direction:column;padding:22px 16px;position:sticky;top:0;height:100vh;
+  }
+  .brand{display:flex;align-items:center;gap:10px;padding:4px 8px 22px;}
+  .brand-mark{width:36px;height:36px;border-radius:10px;object-fit:cover;flex-shrink:0;}
+  .brand-name{font-size:14px;font-weight:700;color:#fff;line-height:1.25;}
+  .brand-name span{display:block;font-weight:500;color:#8DA2C0;font-size:12px;}
+
+  .nav-group{margin-bottom:6px;}
+  .nav-item{
+    display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;
+    font-size:13.5px;font-weight:500;color:#AEBBD1;cursor:pointer;transition:background .15s,color .15s;
+    margin-bottom:2px;position:relative;
+  }
+  .nav-item svg{width:18px;height:18px;flex-shrink:0;}
+  .nav-item:hover{background:#151E30;color:#fff;}
+  .nav-item.active{background:var(--primary);color:#fff;}
+  .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:10.5px;font-weight:700;padding:1px 7px;border-radius:20px;}
+  .nav-item.soon{opacity:.45;cursor:default;pointer-events:none;position:relative;}
+  .nav-item.soon:hover{background:transparent;color:#AEBBD1;}
+  .nav-item.soon .soon-tag{margin-left:auto;font-size:9px;font-weight:700;letter-spacing:.02em;background:#1C273B;color:#748199;padding:2px 6px;border-radius:6px;}
+
+  .sidebar-status{
+    margin-top:auto;background:#151E30;border-radius:12px;padding:11px 12px;font-size:12.5px;
+    display:flex;align-items:center;gap:8px;color:#AEBBD1;
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--success);flex-shrink:0;box-shadow:0 0 0 3px rgba(34,197,94,.18);}
+  .quick-links{background:#151E30;border-radius:12px;padding:14px;margin-top:12px;}
+  .quick-links h4{margin:0 0 8px;font-size:11px;letter-spacing:.02em;color:#748199;font-weight:600;}
+  .ql-item{display:flex;align-items:center;gap:9px;padding:7px 4px;font-size:12.5px;color:#C4D0E2;cursor:pointer;border-radius:8px;}
+  .ql-item:hover{color:#fff;background:#1C273B;}
+  .ql-item svg{width:15px;height:15px;color:var(--primary);}
+
+  /* MAIN */
+  .main{flex:1;min-width:0;padding:26px 32px 40px;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:16px;}
+  .greeting h1{font-size:23px;margin:0 0 4px;font-weight:800;}
+  .greeting p{margin:0;color:var(--ink-soft);font-size:13.5px;}
+  .topbar-right{display:flex;align-items:center;gap:16px;}
+  .search{
+    display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+    padding:9px 14px;border-radius:10px;min-width:260px;color:var(--ink-faint);font-size:13px;box-shadow:var(--shadow);
+  }
+  .search svg{width:16px;height:16px;flex-shrink:0;}
+  .icon-btn{position:relative;width:38px;height:38px;border-radius:10px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow);cursor:pointer;}
+  .icon-btn svg{width:17px;height:17px;color:var(--ink-soft);}
+  .icon-btn .badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-size:9.5px;font-weight:700;padding:1px 5px;border-radius:20px;}
+  .notif-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:var(--card);border-radius:12px;box-shadow:var(--shadow);width:320px;max-height:380px;overflow-y:auto;display:none;z-index:50;cursor:default;}
+  .notif-dropdown.open{display:block;}
+  .notif-dropdown .notif-head{padding:12px 14px;font-size:13px;font-weight:700;border-bottom:1px solid var(--line);}
+  .notif-tabs{display:flex;border-bottom:1px solid var(--line);}
+  .notif-tab{flex:1;text-align:center;padding:10px 8px;font-size:12px;font-weight:700;color:var(--ink-faint);cursor:pointer;border-bottom:2px solid transparent;background:none;border-left:none;border-right:none;border-top:none;font-family:inherit;}
+  .notif-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+  .notif-item{display:block;padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;}
+  .notif-item:last-child{border-bottom:none;}
+  .notif-item:hover{background:var(--bg);}
+  .notif-item .n-id{font-size:12px;font-weight:700;color:var(--primary);}
+  .notif-item .n-name{font-size:12.5px;font-weight:600;color:var(--ink);margin-top:2px;}
+  .notif-item .n-time{font-size:11px;color:var(--ink-faint);margin-top:2px;}
+  .notif-empty{padding:24px 14px;text-align:center;color:var(--ink-faint);font-size:12.5px;}
+  .profile{display:flex;align-items:center;gap:9px;cursor:pointer;position:relative;}
+  .profile-dropdown{position:absolute;top:calc(100% + 10px);right:0;background:var(--card);border-radius:12px;box-shadow:var(--shadow);width:200px;padding:8px;display:none;z-index:50;}
+  .profile-dropdown.open{display:block;}
+  .profile-dropdown a, .profile-dropdown button{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 10px;border-radius:8px;font-size:13px;font-weight:600;color:var(--ink-soft);background:none;border:none;cursor:pointer;font-family:inherit;}
+  .profile-dropdown a:hover, .profile-dropdown button:hover{background:var(--bg);}
+  .profile-dropdown svg{width:16px;height:16px;flex-shrink:0;}
+  .profile-dropdown .divider{height:1px;background:var(--line);margin:6px 4px;}
+  .profile-dropdown .logout-item{color:var(--danger);}
+  .avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#F59E0B,#EC4899);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;}
+  .profile-name{font-size:13px;font-weight:700;line-height:1.3;}
+  .profile-name span{display:block;font-size:11px;color:var(--ink-faint);font-weight:500;}
+
+  .panel{background:var(--card);border-radius:var(--radius-md);box-shadow:var(--shadow);padding:18px;}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;}
+  .panel-head h3{margin:0;font-size:14.5px;font-weight:700;}
+
+  /* FILTER TABS */
+  .filter-tabs{display:flex;gap:6px;flex-wrap:wrap;}
+  .ftab{font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px;color:var(--ink-soft);cursor:pointer;border:1px solid var(--line);background:var(--card);}
+  .ftab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+  .ftab .count{margin-left:6px;opacity:.75;}
+  .issue-select{font-size:12.5px;font-weight:700;padding:7px 13px;border-radius:8px;color:var(--ink-soft);cursor:pointer;border:1px solid var(--line);background:var(--card);max-width:240px;}
+  .date-filter-wrap{position:relative;}
+  .custom-date-pop{display:none;position:absolute;top:calc(100% + 8px);left:0;background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:14px;z-index:60;width:210px;}
+  .custom-date-pop.open{display:block;}
+  .custom-date-pop label{display:block;font-size:11px;font-weight:700;color:var(--ink-faint);text-transform:uppercase;letter-spacing:.02em;margin:10px 0 4px;}
+  .custom-date-pop label:first-child{margin-top:0;}
+  .custom-date-pop input[type="date"]{width:100%;padding:8px 9px;border-radius:8px;border:1px solid var(--line);font-family:inherit;font-size:12.5px;color:var(--ink);background:var(--bg);}
+  .custom-date-actions{display:flex;gap:8px;margin-top:14px;}
+  .custom-date-actions button{flex:1;padding:8px 10px;border-radius:8px;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;border:1px solid var(--line);}
+  #customDateCancel{background:var(--card);color:var(--ink-soft);}
+  #customDateApply{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+  /* TICKET TABLE */
+  .t-table{width:100%;border-collapse:collapse;}
+  .t-table th{
+    text-align:left;font-size:11.5px;letter-spacing:.02em;color:var(--ink-faint);font-weight:700;
+    text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line);
+  }
+  .t-table td{padding:13px 12px;font-size:13px;border-bottom:1px solid var(--line);vertical-align:middle;}
+  .t-table tr:last-child td{border-bottom:none;}
+  .t-table tbody tr{cursor:pointer;transition:background .15s;}
+  .t-table tbody tr:hover{background:#F8FAFC;}
+  .t-id{font-weight:700;color:var(--primary);}
+  .t-id a:hover{text-decoration:underline;}
+  .t-customer{display:flex;align-items:center;gap:9px;}
+  .t-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;}
+  .t-cname{font-weight:700;font-size:13px;}
+  .t-csub{font-size:11.5px;color:var(--ink-faint);}
+  .pill{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;}
+  .pill.high{background:var(--danger-tint);color:var(--danger);}
+  .pill.medium{background:var(--warning-tint);color:var(--warning);}
+  .pill.low{background:var(--success-tint);color:var(--success);}
+  .status{font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-flex;align-items:center;gap:5px;}
+  .status::before{content:'';width:6px;height:6px;border-radius:50%;}
+  .status.new{background:var(--primary-tint);color:var(--primary);}
+  .status.new::before{background:var(--primary);}
+  .status.progress{background:var(--warning-tint);color:var(--warning);}
+  .status.progress::before{background:var(--warning);}
+  .status.waiting{background:var(--purple-tint);color:var(--purple);}
+  .status.waiting::before{background:var(--purple);}
+  .status.escalated{background:var(--danger-tint);color:var(--danger);}
+  .status.escalated::before{background:var(--danger);}
+  .status.pending{background:var(--primary-tint);color:var(--primary);}
+  .status.pending::before{background:var(--primary);}
+  .status.checking{background:var(--warning-tint);color:var(--warning);}
+  .status.checking::before{background:var(--warning);}
+  .status.done{background:var(--success-tint);color:var(--success);}
+  .status.done::before{background:var(--success);}
+  .status.rejected{background:var(--danger-tint);color:var(--danger);}
+  .status.rejected::before{background:var(--danger);}
+  .status.unknown{background:#F1F5F9;color:var(--ink-faint);}
+  .status.unknown::before{background:var(--ink-faint);}
+  .t-channel{color:var(--ink-soft);font-size:12.5px;}
+  .t-ack{color:var(--ink-soft);font-size:12.5px;font-weight:600;}
+  .t-time{color:var(--ink-faint);font-size:12px;white-space:nowrap;}
+  .t-actions{display:flex;gap:6px;}
+  .t-btn{width:28px;height:28px;border-radius:8px;background:#F8FAFC;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .t-btn svg{width:14px;height:14px;color:var(--ink-soft);}
+
+  .table-wrap{overflow-x:auto;}
+  .t-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;font-size:12.5px;color:var(--ink-soft);flex-wrap:wrap;gap:10px;}
+  .pager{display:flex;gap:6px;}
+  .pg-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--card);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--ink-soft);}
+  .pg-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+  @media (max-width:860px){
+    .sidebar{display:none;}
+    .main{padding:20px 16px 32px;}
+    .search{min-width:0;flex:1;}
+  }
+</style>
+</head>
+<body>
+<script>
+  // ---- Auth check: uses the same pipeline_token + Railway API as the React app ----
+  const API_BASE = "https://pipeline-crm-production-412d.up.railway.app/api";
+  const LOGIN_PATH = "/login";
+
+  (async function checkAuth() {
+    const token = localStorage.getItem("pipeline_token");
+    if (!token) {
+      window.location.href = LOGIN_PATH;
+      return;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error("Invalid session");
+      const data = await res.json();
+      const user = data.user || data; // /api/auth/me returns { user: {...} }
+      if (user) {
+        const nameEl = document.querySelector(".profile-name");
+        if (nameEl && user.name) {
+          nameEl.childNodes[0].nodeValue = user.name;
+        }
+        const roleEl = document.querySelector(".profile-name span");
+        if (roleEl) {
+          const roleLabels = { admin: 'Administrator', member: 'Team Member' };
+          roleEl.textContent = roleLabels[user.role] || (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Team Member');
+        }
+        const avatarEl = document.querySelector(".profile .avatar");
+        if (avatarEl && user.name) {
+          avatarEl.textContent = user.name.trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+        }
+      }
+    } catch (err) {
+      localStorage.removeItem("pipeline_token");
+      window.location.href = LOGIN_PATH;
+    }
+  })();
+
+  function toggleProfileMenu(e) {
+    e.stopPropagation();
+    document.getElementById('profileDropdown').classList.toggle('open');
+  }
+  document.addEventListener('click', () => {
+    const dd = document.getElementById('profileDropdown');
+    if (dd) dd.classList.remove('open');
+  });
+  function logoutUser(e) {
+    e.stopPropagation();
+    localStorage.removeItem('pipeline_token');
+    window.location.href = LOGIN_PATH;
+  }
+</script>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">
+      <img src="logo.png" alt="CSR Dashboard logo" class="brand-mark">
+      <div class="brand-name">CSR Dashboard<span>Support Console</span></div>
+    </div>
+
+    <div class="nav-group">
+      <a href="csr-dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></svg>
+        Dashboard
+      </a>
+      <a href="tickets.html" class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8a2 2 0 012-2h14a2 2 0 012 2v3a2 2 0 000 4v3a2 2 0 01-2 2H5a2 2 0 01-2-2v-3a2 2 0 000-4V8z"/></svg>
+        Tickets
+      </a>
+      <a href="kyc.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M4 17c0-1.5 1.5-3 4.5-3s4.5 1.5 4.5 3"/><path d="M15 10h5M15 14h3"/></svg>
+        KYC
+      </a>
+      <div class="nav-item soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Customers <span class="soon-tag">Soon</span>
+      </div>
+      <a href="reports.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+        Reports
+      </a>
+      <a href="openai.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        OpenAI
+      </a>
+      <div class="nav-item soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        Agents <span class="soon-tag">Soon</span>
+      </div>
+      <div class="nav-item soon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+        Knowledge Base <span class="soon-tag">Soon</span>
+      </div>
+      <a href="settings.html" class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.09-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        Settings
+      </a>
+    </div>
+
+    <div class="quick-links">
+      <h4>QUICK LINKS</h4>
+      <div class="ql-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>Create Ticket</div>
+      <div class="ql-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>Customer Lookup</div>
+      <a href="reports.html" class="ql-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>Generate Report</a>
+      <div class="ql-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l18-5v12L3 14v-3z"/></svg>Broadcast Notice</div>
+    </div>
+
+    <div class="sidebar-status" style="margin-top:12px;"><span class="dot"></span> Online — Connected as CSR</div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar">
+      <div class="greeting">
+        <h1>Tickets</h1>
+        <p>All support tickets across chat, email, and social channels.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          Search ticket, customer or ID...
+        </div>
+        <div class="icon-btn" id="notifToggle" onclick="toggleNotifMenu(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8a6 6 0 00-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+          <span class="badge" id="notifBadge" style="display:none;">0</span>
+          <div class="notif-dropdown" id="notifDropdown" onclick="event.stopPropagation()">
+            <div class="notif-tabs">
+              <button class="notif-tab active" id="notifTabNew" onclick="switchNotifTab('new')">New Tickets</button>
+              <button class="notif-tab" id="notifTabProgress" onclick="switchNotifTab('inprogress')">In Progress</button>
+            </div>
+            <div id="notifList"></div>
+          </div>
+        </div>
+        <div class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+        <div class="profile" id="profileToggle" onclick="toggleProfileMenu(event)">
+          <div class="avatar">CS</div>
+          <div class="profile-name">Chad Syy<span>Assistant Operation Manager</span></div>
+          <div class="profile-dropdown" id="profileDropdown">
+            <a href="profile.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Profile
+            </a>
+            <a href="profile.html">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1.09-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+              Account Settings
+            </a>
+            <div class="divider"></div>
+            <button class="logout-item" onclick="logoutUser(event)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+              Log Out
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TICKETS PANEL -->
+    <div class="panel">
+      <div class="panel-head">
+        <h3>All Tickets <span id="liveIndicator" style="font-size:11px;font-weight:600;color:var(--ink-faint);margin-left:8px;">● Live</span></h3>
+        <div class="filter-tabs" id="statusTabs">
+          <div class="ftab active" data-status="all">All <span class="count">0</span></div>
+          <div class="ftab" data-status="pending">New <span class="count">0</span></div>
+          <div class="ftab" data-status="checking">In Progress <span class="count">0</span></div>
+          <div class="ftab" data-status="backlog">Backlog <span class="count">0</span></div>
+          <div class="ftab" data-status="done">Done <span class="count">0</span></div>
+          <div class="ftab" data-status="rejected">Rejected <span class="count">0</span></div>
+        </div>
+      </div>
+
+      <div class="panel-head" style="margin-top:-8px;">
+        <div class="filter-tabs" id="brandTabs"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <div class="date-filter-wrap" id="dateFilterWrap">
+            <select id="dateFilter" class="issue-select">
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="7d">Last 7 Days</option>
+              <option value="30d">Last 30 Days</option>
+              <option value="month">This Month</option>
+              <option value="custom" id="customDateOption">Custom Date</option>
+            </select>
+            <div class="custom-date-pop" id="customDatePop">
+              <label for="customDateFrom">From</label>
+              <input type="date" id="customDateFrom">
+              <label for="customDateTo">To</label>
+              <input type="date" id="customDateTo">
+              <div class="custom-date-actions">
+                <button type="button" id="customDateCancel">Cancel</button>
+                <button type="button" id="customDateApply">Apply</button>
+              </div>
+            </div>
+          </div>
+          <select id="issueFilter" class="issue-select">
+            <option value="all">All Issues</option>
+          </select>
+          <button id="exportCsvBtn" onclick="exportTicketsToCsv()" style="display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;padding:9px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-family:inherit;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="t-table" id="ticketTable">
+          <thead>
+            <tr>
+              <th>Ticket ID</th>
+              <th>Customer</th>
+              <th>Issue</th>
+              <th>Channel</th>
+              <th>Priority</th>
+              <th>Status</th>
+              <th>Acknowledged By</th>
+              <th>Updated</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ticketBody"></tbody>
+        </table>
+      </div>
+
+      <div class="t-foot">
+        <div>Loading tickets…</div>
+        <div class="pager"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // ---- Live data source: shared TicketData module (see /ticket-data.js) ----
+  const PAGE_SIZE = Number(localStorage.getItem('csr_page_size')) || 10;
+  let allTickets = [];
+  let filteredTickets = [];
+
+  // Exports whatever is currently shown (respects all active filters:
+  // status tab, brand, date range, issue, and search box).
+  function exportTicketsToCsv() {
+    if (filteredTickets.length === 0) {
+      alert('No tickets to export with the current filters.');
+      return;
+    }
+    const rows = filteredTickets.map(t => ({
+      'Ticket ID': t.id,
+      'Brand': t.brandLabel,
+      'Customer': t.name,
+      'Issue': t.issue,
+      'Channel': t.channel,
+      'Priority': t.priorityLabel,
+      'Status': t.statusLabel,
+      'Submitted At': t.submitted ? t.submitted.toLocaleString() : '',
+      'Acknowledged By': t.acknowledgedBy || '',
+      'Acknowledged At': t.acknowledgedAt ? t.acknowledgedAt.toLocaleString() : '',
+      'Resolved By': t.resolvedBy || '',
+      'Resolved At': t.resolvedAt ? t.resolvedAt.toLocaleString() : ''
+    }));
+    const csv = Papa.unparse(rows);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `tickets-export-${stamp}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  let currentFilter = 'all';
+  let currentBrand = 'all';
+  let currentIssue = 'all';
+  let currentDateFilter = 'all';
+  let customDateFrom = null;
+  let customDateTo = null;
+  let pendingIssueParam = null;
+  let currentSearch = '';
+  let currentPage = 1;
+
+  const body = document.getElementById('ticketBody');
+  const { escapeHtml, relativeTime } = TicketData;
+
+  function showMessage(text) {
+    body.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:36px;color:var(--ink-faint);">${escapeHtml(text)}</td></tr>`;
+  }
+
+  showMessage('Loading tickets from Google Sheet…');
+
+  let notifiedTicketIds = new Set();
+
+  function checkForNewTicketNotifications() {
+    if (localStorage.getItem('csr_desktop_notif') !== 'true') return;
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+    const pending = allTickets.filter(t => t.statusCls === 'pending');
+    pending.forEach(t => {
+      if (!notifiedTicketIds.has(t.id)) {
+        notifiedTicketIds.add(t.id);
+        new Notification('New ticket', { body: `${t.id} — ${t.name}: ${t.issue}` });
+      }
+    });
+  }
+
+  TicketData.fetchTickets()
+    .then(tickets => {
+      allTickets = tickets;
+      // Mark everything already pending at load time as "seen" so opening
+      // the page doesn't flood-notify for the existing backlog.
+      allTickets.filter(t => t.statusCls === 'pending').forEach(t => notifiedTicketIds.add(t.id));
+      renderBrandTabs();
+      renderIssueFilter();
+      if (pendingIssueParam) {
+        const select = document.getElementById('issueFilter');
+        const matchExists = Array.from(select.options).some(opt => opt.value === pendingIssueParam);
+        if (matchExists) {
+          select.value = pendingIssueParam;
+          currentIssue = pendingIssueParam;
+        }
+      }
+      applyFilters();
+      markLiveUpdated();
+      renderNotifBadge();
+      TicketData.startAutoRefresh(handleAutoRefresh, Number(localStorage.getItem('csr_refresh_interval')) || 20000);
+    })
+    .catch(err => {
+      console.error(err);
+      showMessage('Could not load tickets from the Google Sheet. Please check the sheet link and try again.');
+    });
+
+  // Refreshes the underlying data in the background every ~60s without
+  // resetting the page/filters the agent currently has open.
+  function handleAutoRefresh(tickets) {
+    allTickets = tickets;
+    checkForNewTicketNotifications();
+    renderFilterCounts();
+    renderBrandTabCounts();
+    renderIssueFilterCounts();
+    filteredTickets = allTickets.filter(t => ticketMatchesFilters(t));
+    const totalPages = Math.max(1, Math.ceil(filteredTickets.length / PAGE_SIZE));
+    if (currentPage > totalPages) currentPage = totalPages;
+    renderPage();
+    markLiveUpdated();
+    renderNotifBadge();
+  }
+
+  let notifActiveTab = 'new';
+
+  // The bell badge always reflects "New" tickets specifically — the ones
+  // nobody has acknowledged yet. Once acked (In Progress or further), a
+  // ticket drops off the badge count automatically.
+  function renderNotifBadge() {
+    const newTickets = allTickets.filter(t => t.statusCls === 'pending');
+    const badge = document.getElementById('notifBadge');
+    if (badge) {
+      if (newTickets.length > 0) {
+        badge.textContent = newTickets.length > 99 ? '99+' : newTickets.length;
+        badge.style.display = '';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    renderNotifList();
+  }
+
+  function switchNotifTab(tab) {
+    notifActiveTab = tab;
+    document.getElementById('notifTabNew').classList.toggle('active', tab === 'new');
+    document.getElementById('notifTabProgress').classList.toggle('active', tab === 'inprogress');
+    renderNotifList();
+  }
+
+  function renderNotifList() {
+    const list = document.getElementById('notifList');
+    if (!list) return;
+    const statusCls = notifActiveTab === 'new' ? 'pending' : 'checking';
+    const emptyText = notifActiveTab === 'new' ? 'No new tickets right now' : 'No tickets in progress right now';
+    const tickets = allTickets.filter(t => t.statusCls === statusCls).sort((a, b) => b.submitted - a.submitted);
+    if (tickets.length === 0) {
+      list.innerHTML = `<div class="notif-empty">${emptyText}</div>`;
+      return;
+    }
+    list.innerHTML = tickets.slice(0, 20).map(t => `
+      <a class="notif-item" href="tickets.html?search=${encodeURIComponent(t.id)}">
+        <div class="n-id">${TicketData.escapeHtml(t.id)}</div>
+        <div class="n-name">${TicketData.escapeHtml(t.name)} — ${TicketData.escapeHtml(t.issue)}</div>
+        <div class="n-time">${TicketData.relativeTime(t.submitted)}</div>
+      </a>
+    `).join('');
+  }
+
+  function toggleNotifMenu(e) {
+    e.stopPropagation();
+    document.getElementById('notifDropdown').classList.toggle('open');
+  }
+  document.addEventListener('click', () => {
+    const notifDd = document.getElementById('notifDropdown');
+    if (notifDd) notifDd.classList.remove('open');
+  });
+
+  function markLiveUpdated() {
+    const el = document.getElementById('liveIndicator');
+    if (!el) return;
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    el.textContent = `● Updated ${time}`;
+    el.style.color = 'var(--success)';
+    setTimeout(() => { el.style.color = 'var(--ink-faint)'; }, 3000);
+  }
+
+  function matchesDateFilter(t) {
+    if (currentDateFilter === 'all') return true;
+    const now = new Date();
+    if (currentDateFilter === 'today') return TicketData.isSameLocalDay(t.submitted, now);
+    if (currentDateFilter === 'yesterday') {
+      const y = new Date(now); y.setDate(y.getDate() - 1);
+      return TicketData.isSameLocalDay(t.submitted, y);
+    }
+    if (currentDateFilter === '7d') {
+      const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 7); cutoff.setHours(0, 0, 0, 0);
+      return t.submitted >= cutoff;
+    }
+    if (currentDateFilter === '30d') {
+      const cutoff = new Date(now); cutoff.setDate(cutoff.getDate() - 30); cutoff.setHours(0, 0, 0, 0);
+      return t.submitted >= cutoff;
+    }
+    if (currentDateFilter === 'month') {
+      return t.submitted.getFullYear() === now.getFullYear() && t.submitted.getMonth() === now.getMonth();
+    }
+    if (currentDateFilter === 'custom') {
+      if (!customDateFrom || !customDateTo) return true;
+      return t.submitted >= customDateFrom && t.submitted <= customDateTo;
+    }
+    return true;
+  }
+
+  // Formats the "Custom Date" <option> label to show the picked range, e.g. "Sep 1 – Sep 7".
+  function updateCustomDateOptionLabel() {
+    const opt = document.getElementById('customDateOption');
+    if (!opt || !customDateFrom || !customDateTo) return;
+    const fmt = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    opt.textContent = `${fmt(customDateFrom)} – ${fmt(customDateTo)}`;
+  }
+
+  // Checks a ticket against all active filters. Pass e.g. {skipStatus:true} to
+  // check against every filter EXCEPT status — used to compute "what would this
+  // count be if I picked this tab" for each facet (status/brand/issue).
+  function ticketMatchesFilters(t, skip = {}) {
+    if (!skip.skipStatus) {
+      if (currentFilter === 'backlog') {
+        const isOpen = t.statusCls === 'pending' || t.statusCls === 'checking';
+        const isToday = TicketData.isSameLocalDay(t.submitted, new Date());
+        if (!(isOpen && !isToday)) return false;
+      } else if (currentFilter !== 'all' && t.statusCls !== currentFilter) {
+        return false;
+      }
+    }
+    if (!skip.skipBrand && currentBrand !== 'all' && t.brandCode !== currentBrand) return false;
+    if (!skip.skipIssue && currentIssue !== 'all' && t.issue !== currentIssue) return false;
+    if (!skip.skipDate && !matchesDateFilter(t)) return false;
+    if (!skip.skipSearch && currentSearch) {
+      const q = currentSearch.toLowerCase();
+      if (!(t.id.toLowerCase().includes(q) || t.name.toLowerCase().includes(q) || t.issue.toLowerCase().includes(q))) return false;
+    }
+    return true;
+  }
+
+  function applyFilters() {
+    filteredTickets = allTickets.filter(t => ticketMatchesFilters(t));
+    currentPage = 1;
+    renderPage();
+    renderFilterCounts();
+    renderBrandTabCounts();
+    renderIssueFilterCounts();
+  }
+
+  function renderPage() {
+    if (filteredTickets.length === 0) {
+      showMessage('No tickets found.');
+      renderFooter();
+      return;
+    }
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const pageItems = filteredTickets.slice(start, start + PAGE_SIZE);
+    body.innerHTML = '';
+    pageItems.forEach(t => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="t-id">${t.sheetLink ? `<a href="${escapeHtml(t.sheetLink)}" target="_blank" rel="noopener" title="Open in Google Sheet">${escapeHtml(t.id)}</a>` : escapeHtml(t.id)}</td>
+        <td>
+          <div class="t-customer">
+            <div class="t-av" style="background:${t.color};">${escapeHtml(t.init)}</div>
+            <div><div class="t-cname">${escapeHtml(t.name)}</div><div class="t-csub">Customer</div></div>
+          </div>
+        </td>
+        <td>${escapeHtml(t.issue)}</td>
+        <td class="t-channel">${escapeHtml(t.channel)}</td>
+        <td><span class="pill ${t.priority}">${escapeHtml(t.priorityLabel)}</span></td>
+        <td><span class="status ${t.statusCls}">${escapeHtml(t.statusLabel)}</span></td>
+        <td class="t-ack">${t.acknowledgedBy ? escapeHtml(t.acknowledgedBy) : '<span style="color:var(--ink-faint);">—</span>'}</td>
+        <td class="t-time">${relativeTime(t.submitted)}</td>
+        <td>
+          <div class="t-actions">
+            <div class="t-btn" title="Open ticket"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg></div>
+          </div>
+        </td>
+      `;
+      body.appendChild(tr);
+    });
+    renderFooter();
+  }
+
+  function renderFooter() {
+    const total = filteredTickets.length;
+    const start = total === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+    const end = Math.min(currentPage * PAGE_SIZE, total);
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+    const footText = document.querySelector('.t-foot > div:first-child');
+    if (footText) footText.textContent = `Showing ${start}–${end} of ${total.toLocaleString()} tickets`;
+
+    const pager = document.querySelector('.pager');
+    if (!pager) return;
+    pager.innerHTML = '';
+
+    const prev = document.createElement('div');
+    prev.className = 'pg-btn';
+    prev.textContent = '‹';
+    prev.onclick = () => { if (currentPage > 1) { currentPage--; renderPage(); } };
+    pager.appendChild(prev);
+
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    startPage = Math.max(1, endPage - maxButtons + 1);
+
+    for (let p = startPage; p <= endPage; p++) {
+      const btn = document.createElement('div');
+      btn.className = 'pg-btn' + (p === currentPage ? ' active' : '');
+      btn.textContent = p;
+      btn.onclick = () => { currentPage = p; renderPage(); };
+      pager.appendChild(btn);
+    }
+
+    const next = document.createElement('div');
+    next.className = 'pg-btn';
+    next.textContent = '›';
+    next.onclick = () => { if (currentPage < totalPages) { currentPage++; renderPage(); } };
+    pager.appendChild(next);
+  }
+
+  function renderFilterCounts() {
+    const subset = allTickets.filter(t => ticketMatchesFilters(t, { skipStatus: true }));
+    const now = new Date();
+    const counts = { all: subset.length, pending: 0, checking: 0, done: 0, rejected: 0, backlog: 0 };
+    subset.forEach(t => {
+      if (counts[t.statusCls] !== undefined) counts[t.statusCls]++;
+      if ((t.statusCls === 'pending' || t.statusCls === 'checking') && !TicketData.isSameLocalDay(t.submitted, now)) {
+        counts.backlog++;
+      }
+    });
+    document.querySelectorAll('#statusTabs .ftab').forEach(tab => {
+      const key = tab.dataset.status;
+      const countEl = tab.querySelector('.count');
+      if (countEl && counts[key] !== undefined) countEl.textContent = counts[key].toLocaleString();
+    });
+  }
+
+  // Status filter tab interaction
+  document.querySelectorAll('#statusTabs .ftab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('#statusTabs .ftab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentFilter = tab.dataset.status;
+      applyFilters();
+    });
+  });
+
+  // Deep-linking: read ?status=, ?date=, ?issue=, and ?search= from the URL (used by
+  // links from the dashboard, e.g. "tickets.html?issue=Cash%20In%20Delay&date=today").
+  (function applyQueryParams() {
+    const params = new URLSearchParams(window.location.search);
+    const statusParam = params.get('status');
+    const dateParam = params.get('date');
+    const dateFromParam = params.get('dateFrom');
+    const dateToParam = params.get('dateTo');
+    const searchParam = params.get('search');
+    pendingIssueParam = params.get('issue');
+    if (statusParam) {
+      currentFilter = statusParam;
+      document.querySelectorAll('#statusTabs .ftab').forEach(tab => {
+        tab.classList.toggle('active', tab.dataset.status === statusParam);
+      });
+    }
+    if (dateParam === 'custom' && dateFromParam && dateToParam) {
+      customDateFrom = new Date(dateFromParam + 'T00:00:00');
+      customDateTo = new Date(dateToParam + 'T23:59:59.999');
+      currentDateFilter = 'custom';
+      const dateSelect = document.getElementById('dateFilter');
+      if (dateSelect) dateSelect.value = 'custom';
+      const fromInput = document.getElementById('customDateFrom');
+      const toInput = document.getElementById('customDateTo');
+      if (fromInput) fromInput.value = dateFromParam;
+      if (toInput) toInput.value = dateToParam;
+      updateCustomDateOptionLabel();
+    } else if (dateParam) {
+      currentDateFilter = dateParam;
+      const dateSelect = document.getElementById('dateFilter');
+      if (dateSelect) dateSelect.value = dateParam;
+    }
+    if (searchParam) {
+      currentSearch = searchParam;
+    }
+  })();
+
+  // Brand filter tabs — built dynamically from whatever brand prefixes appear in the data
+  function renderBrandTabs() {
+    const counts = {};
+    allTickets.forEach(t => { counts[t.brandCode] = (counts[t.brandCode] || 0) + 1; });
+    const codes = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const container = document.getElementById('brandTabs');
+    const allTab = `<div class="ftab active" data-brand="all">All Brands <span class="count">${allTickets.length.toLocaleString()}</span></div>`;
+    const brandTabsHtml = codes.map(code => {
+      const label = TicketData.BRAND_MAP[code] || code;
+      return `<div class="ftab" data-brand="${escapeHtml(code)}">${escapeHtml(label)} <span class="count">${counts[code].toLocaleString()}</span></div>`;
+    }).join('');
+    container.innerHTML = allTab + brandTabsHtml;
+    container.querySelectorAll('.ftab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        container.querySelectorAll('.ftab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentBrand = tab.dataset.brand;
+        applyFilters();
+      });
+    });
+  }
+
+  // Updates just the numbers on the brand tabs (based on the other active filters)
+  // without rebuilding the DOM or losing the click handlers set up above.
+  function renderBrandTabCounts() {
+    const subset = allTickets.filter(t => ticketMatchesFilters(t, { skipBrand: true }));
+    const counts = {};
+    subset.forEach(t => { counts[t.brandCode] = (counts[t.brandCode] || 0) + 1; });
+    document.querySelectorAll('#brandTabs .ftab').forEach(tab => {
+      const code = tab.dataset.brand;
+      const countEl = tab.querySelector('.count');
+      if (!countEl) return;
+      countEl.textContent = code === 'all' ? subset.length.toLocaleString() : (counts[code] || 0).toLocaleString();
+    });
+  }
+
+  // Date range filter
+  const dateFilterSelect = document.getElementById('dateFilter');
+  const customDatePop = document.getElementById('customDatePop');
+  const customDateFromInput = document.getElementById('customDateFrom');
+  const customDateToInput = document.getElementById('customDateTo');
+
+  dateFilterSelect.addEventListener('change', (e) => {
+    if (e.target.value === 'custom') {
+      // Don't apply yet — open the picker and wait for "Apply".
+      customDatePop.classList.add('open');
+      customDateFromInput.focus();
+      return;
+    }
+    customDatePop.classList.remove('open');
+    currentDateFilter = e.target.value;
+    applyFilters();
+  });
+
+  document.getElementById('customDateApply').addEventListener('click', () => {
+    const fromVal = customDateFromInput.value;
+    const toVal = customDateToInput.value;
+    if (!fromVal || !toVal) {
+      alert('Please pick both a start and end date.');
+      return;
+    }
+    if (fromVal > toVal) {
+      alert('Start date must be before the end date.');
+      return;
+    }
+    customDateFrom = new Date(fromVal + 'T00:00:00');
+    customDateTo = new Date(toVal + 'T23:59:59.999');
+    currentDateFilter = 'custom';
+    dateFilterSelect.value = 'custom';
+    updateCustomDateOptionLabel();
+    customDatePop.classList.remove('open');
+    applyFilters();
+  });
+
+  document.getElementById('customDateCancel').addEventListener('click', () => {
+    customDatePop.classList.remove('open');
+    dateFilterSelect.value = currentDateFilter; // revert to whatever was actually applied
+  });
+
+  // Close the popover on outside click without discarding an already-applied custom range.
+  document.addEventListener('click', (e) => {
+    if (!customDatePop.classList.contains('open')) return;
+    if (document.getElementById('dateFilterWrap').contains(e.target)) return;
+    customDatePop.classList.remove('open');
+    dateFilterSelect.value = currentDateFilter;
+  });
+
+  // Issue filter dropdown — built dynamically from distinct issue/subcategory values
+  function renderIssueFilter() {
+    const counts = {};
+    allTickets.forEach(t => { counts[t.issue] = (counts[t.issue] || 0) + 1; });
+    const issues = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+    const select = document.getElementById('issueFilter');
+    select.innerHTML = `<option value="all">All Issues (${allTickets.length.toLocaleString()})</option>` +
+      issues.map(issue => `<option value="${escapeHtml(issue)}">${escapeHtml(issue)} (${counts[issue].toLocaleString()})</option>`).join('');
+    select.addEventListener('change', () => {
+      currentIssue = select.value;
+      applyFilters();
+    });
+  }
+
+  // Updates just the counts shown in each <option> label (based on the other
+  // active filters) without rebuilding the list or losing the current selection.
+  function renderIssueFilterCounts() {
+    const subset = allTickets.filter(t => ticketMatchesFilters(t, { skipIssue: true }));
+    const counts = {};
+    subset.forEach(t => { counts[t.issue] = (counts[t.issue] || 0) + 1; });
+    const select = document.getElementById('issueFilter');
+    Array.from(select.options).forEach(opt => {
+      if (opt.value === 'all') {
+        opt.textContent = `All Issues (${subset.length.toLocaleString()})`;
+      } else {
+        opt.textContent = `${opt.value} (${(counts[opt.value] || 0).toLocaleString()})`;
+      }
+    });
+  }
+
+  // Wire up the search box for live filtering by ticket ID, customer, or issue
+  (function setupSearch() {
+    const wrapper = document.querySelector('.topbar-right .search');
+    if (!wrapper) return;
+    const icon = wrapper.querySelector('svg');
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = 'Search ticket, customer or ID...';
+    input.style.cssText = 'border:none;outline:none;background:transparent;font:inherit;color:inherit;width:100%;';
+    if (currentSearch) input.value = currentSearch;
+    wrapper.innerHTML = '';
+    wrapper.appendChild(icon);
+    wrapper.appendChild(input);
+    input.addEventListener('input', (e) => {
+      currentSearch = e.target.value.trim();
+      applyFilters();
+    });
+  })();
+</script>
+</body>
+</html>
